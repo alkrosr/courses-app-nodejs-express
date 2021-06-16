@@ -5,6 +5,7 @@ const {allowInsecurePrototypeAccess} = require('@handlebars/allow-prototype-acce
 const path = require('path')
 const mongoose = require('mongoose')
 const session = require('express-session')
+const MongoStore = require('connect-mongodb-session')(session)
 const homeRoutes = require('./routes/home')
 const cardRoutes = require('./routes/card')
 const addRoutes = require('./routes/add')
@@ -14,12 +15,19 @@ const authRoutes = require('./routes/auth')
 const User = require('./models/user')
 const varMiddleware = require('./middleware/variables')
 
+const MONGODB_URL = 'mongodb+srv://idv1cher:IWQQZAtc2L23ON11@cluster0.4qn42.mongodb.net/shop'
+
 const app = express()
 
 const hbs = exphbs.create({
     defaultLayout: 'main',
     extname: 'hbs',
     handlebars: allowInsecurePrototypeAccess(Handlebars)
+})
+
+const store = new MongoStore({
+    collection: 'sessions',
+    uri: MONGODB_URL
 })
 
 app.engine('hbs', hbs.engine)
@@ -31,7 +39,8 @@ app.use(express.urlencoded({extended: true}))
 app.use(session({
     secret: 'some secret value',
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    store
 }))
 
 app.use(varMiddleware)
@@ -47,24 +56,11 @@ const PORT = process.env.PORT || 3000
 
 async function start() {
     try {
-        const url = 'mongodb+srv://idv1cher:IWQQZAtc2L23ON11@cluster0.4qn42.mongodb.net/shop'
-        await mongoose.connect(url, {
+        await mongoose.connect(MONGODB_URL, {
             useUnifiedTopology: true,
             useNewUrlParser: true,
             useFindAndModify: false
         })
-
-        // const candidate = await User.findOne()
-        // if (!candidate) {
-        //     const user = new User({
-        //         email: 'id.v1cher@gmail.com',
-        //         name: 'Aleksey Krotenko',
-        //         card: {
-        //             items: []
-        //         }
-        //     })
-        //     await user.save()
-        // }
 
         app.listen(PORT, () => {
             console.log(`Сервер успешно запущен на ${PORT} порту`)
